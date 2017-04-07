@@ -116,33 +116,53 @@ function dragDrop (elem, listeners) {
         return item.kind === 'file'
       })
 
-      if (items.length === 0) return
+      if (items.length > 0) {
 
-      parallel(items.map(function (item) {
-        return function (cb) {
-          processEntry(item.webkitGetAsEntry(), cb)
-        }
-      }), function (err, results) {
-        // This catches permission errors with file:// in Chrome. This should never
-        // throw in production code, so the user does not need to use try-catch.
-        if (err) throw err
-        if (listeners.onDrop) {
-          listeners.onDrop(flatten(results), pos)
-        }
-      })
+        parallel(items.map(function (item) {
+          return function (cb) {
+            processEntry(item.webkitGetAsEntry(), cb)
+          }
+        }), function (err, results) {
+          // This catches permission errors with file:// in Chrome. This should never
+          // throw in production code, so the user does not need to use try-catch.
+          if (err) throw err
+          if (listeners.onDrop) {
+            listeners.onDrop(flatten(results), pos)
+          }
+        })
+  	  }
     } else {
       var files = toArray(e.dataTransfer.files)
 
-      if (files.length === 0) return
+      if (files.length > 1) {
+        files.forEach(function (file) {
+          file.fullPath = '/' + file.name
+        })
 
-      files.forEach(function (file) {
-        file.fullPath = '/' + file.name
-      })
-
-      if (listeners.onDrop) {
-        listeners.onDrop(files, pos)
+        if (listeners.onDrop) {
+          listeners.onDrop(files, pos)
+        }
       }
+
     }
+	
+	// Return directories 
+	if (listeners.onDropDirectory) {
+		var files = toArray(e.dataTransfer.files);
+		
+		if (files.length > 0) {
+			
+			var directories = [];
+			files.forEach(function (file) {
+			  if (file.size === 0) {
+				  directories.push(file);
+			  }
+		  })
+			
+			listeners.onDropDirectory(directories)
+		}
+		
+	}
 
     return false
   }
